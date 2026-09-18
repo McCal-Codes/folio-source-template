@@ -1,0 +1,17 @@
+{
+  "$schema": "https://folio.mccal.dev/schema/v1/manifest.schema.json",
+  "format": 1,
+  "id": "com.example.folio.quiet-hours",
+  "name": "Quiet Hours",
+  "version": "1.0.0",
+  "author": { "name": "You", "url": "https://github.com/you" },
+  "minFolio": "0.7.0",
+  "section": "tweaks",
+  "kind": ["tweakBundle"],
+  "permissions": ["tweaks"],
+  "screens": ["cover", "inner"],
+  "icon": "assets/icons/quiet-hours.png",
+  "depiction": "depiction.json",
+  "license": "MIT",
+  "description": "An example tweak bundle: turns on Folio's notification row and tints notifications to match the app."
+}

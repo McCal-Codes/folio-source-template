@@ -1,0 +1,57 @@
+name: Publish
+
+# Every push to main rebuilds the source, signs it and puts it on GitHub Pages. A pull request builds and checks it
+# without the key, so someone else's change can be reviewed without being able to sign anything.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: folio-source
+  cancel-in-progress: true
+
+jobs:
+  check:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build without signing, and check what it built
+        run: python3 tools/build.py --no-sign
+
+  publish:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build and sign
+        env:
+          # The private key lives only here, as a repository secret. Nothing else in this repository is a secret.
+          FOLIO_SOURCE_KEY: ${{ secrets.FOLIO_SOURCE_KEY }}
+          # A fixed timestamp for the whole run, so a rebuild of unchanged packages is byte for byte the same.
+          SOURCE_DATE_EPOCH: ${{ github.event.repository.pushed_at }}
+        run: python3 tools/build.py
+
+      - name: Refuse to publish an unsigned source
+        run: test -f _site/entry.json.sig || { echo "No signature: set the FOLIO_SOURCE_KEY secret."; exit 1; }
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deploy
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,15 @@
+{
+  "folioTheme": 1,
+  "name": "Midnight",
+  "iconStyle": "DEFAULT",
+  "iconTint": 4282075770,
+  "iconTintFromWallpaper": false,
+  "iconShape": "SQUARE",
+  "iconPack": null,
+  "badgeStyle": "COUNT",
+  "badgeColor": "RED",
+  "liveIcons": true,
+  "homeInk": "LIGHT",
+  "tintedGlass": true,
+  "dimWallpaperDark": true
+}

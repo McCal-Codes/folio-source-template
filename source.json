@@ -1,0 +1,10 @@
+{
+  "name": "Example Tweaks",
+  "description": "A Folio source with two example packages in it. Change this file, keep the packages you want, and the build makes the index.",
+  "icon": "assets/icon.png",
+  "issuesUrl": "https://github.com/you/your-folio-source/issues",
+  "featured": [
+    { "package": "com.example.folio.midnight", "label": "New this week" }
+  ],
+  "maxAgeDays": 14
+}

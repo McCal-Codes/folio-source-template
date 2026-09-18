@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://folio.mccal.dev/schema/v1/tweaks.schema.json",
+  "title": "Folio tweak bundle",
+  "type": "object",
+  "required": [
+    "format",
+    "tweaks"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "format": {
+      "const": 1
+    },
+    "tweaks": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 20,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "enabled"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "enum": [
+              "appPanels",
+              "dockMagnify",
+              "notificationAppRow",
+              "tintNotifications",
+              "tintMedia"
+            ]
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "screens": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "cover": {
+                "type": "boolean"
+              },
+              "inner": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

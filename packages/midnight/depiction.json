@@ -1,0 +1,14 @@
+{
+  "$schema": "https://folio.mccal.dev/schema/v1/depiction.schema.json",
+  "format": 1,
+  "tint": "#3B4A7A",
+  "blocks": [
+    {
+      "type": "markdown",
+      "text": "An example theme, here to show what a package looks like.\n\nEverything it changes is in `theme.json`, which is the same format Folio's own themes use, so you can export a theme from your phone and drop it straight in."
+    },
+    { "type": "featureList", "items": ["Deep blue glass", "Square icons", "A quieter status rail"] },
+    { "type": "compatibility", "screens": ["cover", "inner"] },
+    { "type": "changelog", "entries": [{ "version": "1.0.0", "date": "2026-09-18", "notes": "The first one." }] }
+  ]
+}

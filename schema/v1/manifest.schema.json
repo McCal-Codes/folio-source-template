@@ -1,0 +1,340 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://folio.mccal.dev/schema/v1/manifest.schema.json",
+  "title": "Folio package manifest",
+  "type": "object",
+  "required": [
+    "format",
+    "id",
+    "name",
+    "version",
+    "author",
+    "minFolio",
+    "section",
+    "kind",
+    "permissions"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "format": {
+      "const": 1
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9][a-z0-9-]*)+$",
+      "maxLength": 120
+    },
+    "name": {
+      "oneOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        {
+          "type": "object",
+          "required": [
+            "en"
+          ],
+          "propertyNames": {
+            "pattern": "^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$"
+          },
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          },
+          "maxProperties": 64
+        }
+      ]
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^([0-9]+:)?[0-9][A-Za-z0-9.+~]*(-[A-Za-z0-9.+~]+)?$",
+      "maxLength": 64
+    },
+    "author": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 400
+            },
+            {
+              "type": "object",
+              "required": [
+                "en"
+              ],
+              "propertyNames": {
+                "pattern": "^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$"
+              },
+              "additionalProperties": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 400
+              },
+              "maxProperties": 64
+            }
+          ]
+        },
+        "url": {
+          "type": "string",
+          "pattern": "^https://\\S+$",
+          "maxLength": 2048
+        }
+      }
+    },
+    "minFolio": {
+      "type": "string",
+      "pattern": "^[0-9]{1,9}\\.[0-9]{1,9}\\.[0-9]{1,9}$"
+    },
+    "section": {
+      "enum": [
+        "themes",
+        "tweaks",
+        "layouts",
+        "wallpapers",
+        "scripts"
+      ]
+    },
+    "kind": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "theme",
+          "layoutPreset",
+          "wallpaper",
+          "iconPackLink",
+          "tweakBundle",
+          "settingsSchema",
+          "script",
+          "externalApp"
+        ]
+      }
+    },
+    "permissions": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "home.appearance",
+          "home.layout",
+          "icons",
+          "wallpaper",
+          "tweaks",
+          "island.messages",
+          "focus.switch",
+          "fold.state",
+          "time",
+          "apps.open"
+        ]
+      }
+    },
+    "screens": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "cover",
+          "inner"
+        ]
+      }
+    },
+    "depends": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9.-]*( \\((<<|<=|=|>=|>>) (?=[^)]{1,64}\\))([0-9]+:)?[0-9][A-Za-z0-9.+~]*(-[A-Za-z0-9.+~]+)?\\))?$",
+        "maxLength": 200
+      },
+      "maxItems": 32
+    },
+    "conflicts": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9.-]*( \\((<<|<=|=|>=|>>) (?=[^)]{1,64}\\))([0-9]+:)?[0-9][A-Za-z0-9.+~]*(-[A-Za-z0-9.+~]+)?\\))?$",
+        "maxLength": 200
+      },
+      "maxItems": 32
+    },
+    "icon": {
+      "type": "string",
+      "pattern": "^(?!/)(?!.*\\.\\.)[A-Za-z0-9._/-]+$",
+      "maxLength": 200
+    },
+    "depiction": {
+      "type": "string",
+      "pattern": "^(?!/)(?!.*\\.\\.)[A-Za-z0-9._/-]+$",
+      "maxLength": 200
+    },
+    "license": {
+      "type": "string",
+      "maxLength": 64
+    },
+    "description": {
+      "oneOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 400
+        },
+        {
+          "type": "object",
+          "required": [
+            "en"
+          ],
+          "propertyNames": {
+            "pattern": "^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$"
+          },
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 400
+          },
+          "maxProperties": 64
+        }
+      ]
+    },
+    "via": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "store"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "store": {
+            "enum": [
+              "playStore",
+              "fdroid",
+              "obtainium"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "maxLength": 200,
+            "pattern": "^[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z][A-Za-z0-9_]*)+$"
+          },
+          "repoUrl": {
+            "type": "string",
+            "pattern": "^https://\\S+$",
+            "maxLength": 2048
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "store": {
+                  "enum": [
+                    "playStore",
+                    "fdroid"
+                  ]
+                }
+              },
+              "required": [
+                "store"
+              ]
+            },
+            "then": {
+              "required": [
+                "id"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "store": {
+                  "const": "obtainium"
+                }
+              },
+              "required": [
+                "store"
+              ]
+            },
+            "then": {
+              "required": [
+                "repoUrl"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "provides": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "iconPack",
+          "wallpapers",
+          "widgets",
+          "folioTheme"
+        ]
+      }
+    },
+    "requires": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Folio capabilities this package configures. Folio checks it has each one instead of relying on a version number.",
+      "properties": {
+        "features": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "theme",
+              "home.layout",
+              "wallpaper",
+              "icons",
+              "icons.packs",
+              "tweaks.appPanels",
+              "tweaks.dockMagnify",
+              "tweaks.notificationAppRow",
+              "tweaks.tintNotifications",
+              "tweaks.tintMedia",
+              "island.messages",
+              "focus.modes",
+              "settings.pages",
+              "scripts"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "contains": {
+              "const": "externalApp"
+            }
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "via"
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "$schema": "https://folio.mccal.dev/schema/v1/depiction.schema.json",
+  "format": 1,
+  "tint": "#2E7D63",
+  "blocks": [
+    {
+      "type": "markdown",
+      "text": "An example bundle, here to show that one source can hold more than one package.\n\nA tweak bundle doesn't carry code: it names tweaks Folio already has and the options they should take. That is why a package like this can be installed without asking you to trust anything that runs."
+    },
+    { "type": "featureList", "items": ["Notification row on Home", "Notifications tinted to the app"] },
+    { "type": "compatibility", "screens": ["cover", "inner"] },
+    { "type": "changelog", "entries": [{ "version": "1.0.0", "date": "2026-09-18", "notes": "The first one." }] }
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://folio.mccal.dev/schema/v1/entry.schema.json",
+  "title": "Folio source entry (signed)",
+  "type": "object",
+  "required": [
+    "format",
+    "keyId",
+    "timestamp",
+    "maxAge",
+    "index"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "format": {
+      "const": 1
+    },
+    "keyId": {
+      "type": "string",
+      "pattern": "^[0-9A-F]{16}$"
+    },
+    "timestamp": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4102444800
+    },
+    "maxAge": {
+      "type": "integer",
+      "minimum": 3600,
+      "maximum": 2592000
+    },
+    "index": {
+      "type": "object",
+      "required": [
+        "path",
+        "sha256",
+        "size"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "type": "string",
+          "pattern": "^(?!/)(?!.*\\.\\.)[A-Za-z0-9._/-]+$",
+          "maxLength": 200
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8388608
+        }
+      }
+    }
+  }
+}

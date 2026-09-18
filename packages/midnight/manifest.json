@@ -1,0 +1,17 @@
+{
+  "$schema": "https://folio.mccal.dev/schema/v1/manifest.schema.json",
+  "format": 1,
+  "id": "com.example.folio.midnight",
+  "name": "Midnight",
+  "version": "1.0.0",
+  "author": { "name": "You", "url": "https://github.com/you" },
+  "minFolio": "0.7.0",
+  "section": "themes",
+  "kind": ["theme"],
+  "permissions": [],
+  "screens": ["cover", "inner"],
+  "icon": "assets/icons/midnight.png",
+  "depiction": "depiction.json",
+  "license": "MIT",
+  "description": "An example theme: deep blue glass, square icons and a quiet status rail."
+}
