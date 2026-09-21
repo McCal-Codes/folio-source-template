@@ -47,7 +47,8 @@ jobs:
         run: python3 tools/build.py
 
       - name: Refuse to publish an unsigned source
-        run: test -f _site/entry.json.sig || { echo "No signature: set the FOLIO_SOURCE_KEY secret."; exit 1; }
+        run: |
+          test -f _site/entry.json.sig || { echo "No signature: set the FOLIO_SOURCE_KEY secret."; exit 1; }
 
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
