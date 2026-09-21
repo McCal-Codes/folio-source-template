@@ -88,6 +88,31 @@ def pack(folder: pathlib.Path, manifest: dict, out: pathlib.Path) -> None:
             archive.writestr(info, path.read_bytes())
 
 
+def is_app(manifest: dict) -> bool:
+    """An app of its own: Android installs it, so there is no .foliopkg, only where to get the APK."""
+    return "externalApp" in manifest.get("kind", [])
+
+
+def app_download(folder: pathlib.Path) -> dict | None:
+    """
+    Where an app's APK is, from app.json beside its manifest: {"url", "sha256", "size"}.
+
+    Written by whatever makes the release, not by hand, because the checksum is the whole point and a typed one is
+    a typo waiting. Without it the listing still works - Folio sends people to the stores in its `via` list - it
+    just can't install the app itself.
+    """
+    path = folder / "app.json"
+    if not path.is_file():
+        return None
+    app = json.loads(path.read_text())
+    missing = [k for k in ("url", "sha256", "size") if k not in app]
+    if missing:
+        fail(f"{path.relative_to(ROOT)} is missing {', '.join(missing)}")
+    if not str(app["url"]).startswith("https://"):
+        fail(f"{path.relative_to(ROOT)}: an app's url must be an https:// link")
+    return {"url": app["url"], "sha256": app["sha256"].lower(), "size": int(app["size"])}
+
+
 def build_index(source: dict, packages: list[dict]) -> dict:
     """The index is generated, never hand-written, so it cannot drift from the packages it lists."""
     index = {
@@ -100,14 +125,15 @@ def build_index(source: dict, packages: list[dict]) -> dict:
             index[optional] = source[optional]
     if source.get("featured"):
         index["featured"] = source["featured"]
-    index["packages"] = [
-        {
-            "id": manifest["id"],
-            "version": manifest["version"],
-            "manifest": {k: v for k, v in manifest.items() if k != "$schema"},
-        }
-        for manifest in packages
-    ]
+    index["packages"] = []
+    for manifest, download in packages:
+        entry = {"id": manifest["id"], "version": manifest["version"]}
+        # Without url, sha256 and size a phone has nowhere to download from and nothing to check it against, so
+        # every package this template published used to fail at Get.
+        if download:
+            entry.update(download)
+        entry["manifest"] = {k: v for k, v in manifest.items() if k != "$schema"}
+        index["packages"].append(entry)
     return index
 
 
@@ -147,8 +173,17 @@ def main() -> int:
         if not manifest_path.is_file():
             fail(f"{folder.relative_to(ROOT)} has no manifest.json")
         manifest = json.loads(manifest_path.read_text())
-        manifests.append(manifest)
-        pack(folder, manifest, SITE / "packages" / f"{manifest['id']}.foliopkg")
+        if is_app(manifest):
+            manifests.append((manifest, app_download(folder)))
+            continue
+        archive = SITE / "packages" / f"{manifest['id']}.foliopkg"
+        pack(folder, manifest, archive)
+        data = archive.read_bytes()
+        manifests.append((manifest, {
+            "url": f"packages/{archive.name}",
+            "sha256": hashlib.sha256(data).hexdigest(),
+            "size": len(data),
+        }))
 
     if (ROOT / "assets").is_dir():
         shutil.copytree(ROOT / "assets", SITE / "assets")
