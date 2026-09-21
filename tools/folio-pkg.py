@@ -444,9 +444,30 @@ def check_source(root: pathlib.Path, schemas: SchemaSet, report: Report) -> str:
                         f"packages/{archive_path.name}: what is inside differs from what index.json advertises"
                     )
 
-    for package_id in listed:
+    for package_id, entry in listed.items():
+        kinds = entry.get("manifest", {}).get("kind", [])
+        url = entry.get("url")
+        if "externalApp" in kinds:
+            # An app lives wherever its releases do; the source only says where, and what the bytes must hash to.
+            if url is not None and not str(url).startswith("https://"):
+                report.error(f"index.json: {package_id} is an app, so its url has to be an https:// link to the APK")
+            continue
         if package_id not in on_disk and package_id not in packed:
             report.error(f"index.json lists {package_id}, but there is no folder or .foliopkg for it here")
+            continue
+        if package_id in packed:
+            # A phone refuses a package with no url, sha256 and size, and refuses one whose bytes don't match them.
+            # Checking here is cheaper than finding out from someone who pressed Get.
+            archive = packed[package_id]
+            if url is None:
+                report.error(f"index.json: {package_id} has no url, so no phone can download it")
+            elif not str(url).startswith("https://") and (root / url).resolve() != archive.resolve():
+                report.error(f"index.json: {package_id}'s url is {url}, but its package is packages/{archive.name}")
+            data = archive.read_bytes()
+            if entry.get("sha256") != hashlib.sha256(data).hexdigest():
+                report.error(f"index.json: {package_id}'s sha256 doesn't match packages/{archive.name}")
+            if entry.get("size") != len(data):
+                report.error(f"index.json: {package_id}'s size doesn't match packages/{archive.name}")
 
     signed = (root / "entry.json").is_file()
     check_entry(root, schemas, report)

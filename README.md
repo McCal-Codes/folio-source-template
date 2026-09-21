@@ -37,6 +37,21 @@ tweak bundle. Delete them once yours work.
 The first time someone adds it, Folio shows them your key's fingerprint and remembers it. After that a source signed
 with a different key stops working until they agree to the change, so the key matters more than the repository does.
 
+## Listing an app
+
+Some things have to be apps of their own: Android will only take a keyboard as its own app, for instance. A package
+whose `manifest.json` has `"kind": ["externalApp"]` isn't packed. Its `via` list says where people can get it (Play,
+F-Droid or Obtainium), and an `app.json` beside the manifest lets Folio install the APK itself, for anyone who has
+turned that on:
+
+```json
+{ "url": "https://github.com/you/your-app/releases/download/v1.0.0/YourApp-1.0.0.apk",
+  "sha256": "…", "size": 1234567 }
+```
+
+Take the checksum and size from the release, never type them. Folio refuses an APK whose bytes don't match, and
+Android asks before installing anything, but nothing checks the app itself: your source is what vouches for it.
+
 ## What gets built
 
 `tools/build.py` turns this folder into `_site/`, which is the source as a phone sees it:
