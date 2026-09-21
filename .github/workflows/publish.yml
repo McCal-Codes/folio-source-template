@@ -8,6 +8,9 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+  # Re-sign every Monday so the index never outlives its maxAge between pushes; Folio refuses a stale source.
+  schedule:
+    - cron: "0 6 * * 1"
 
 permissions:
   contents: read
@@ -43,7 +46,7 @@ jobs:
           # The private key lives only here, as a repository secret. Nothing else in this repository is a secret.
           FOLIO_SOURCE_KEY: ${{ secrets.FOLIO_SOURCE_KEY }}
           # A fixed timestamp for the whole run, so a rebuild of unchanged packages is byte for byte the same.
-          SOURCE_DATE_EPOCH: ${{ github.event.repository.pushed_at }}
+          SOURCE_DATE_EPOCH: ${{ github.event_name == 'push' && github.event.repository.pushed_at || '' }}
         run: python3 tools/build.py
 
       - name: Refuse to publish an unsigned source
