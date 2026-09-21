@@ -281,6 +281,7 @@ def build_page(index: dict, fingerprint: str | None) -> str:
         '<a class="open" id="open" href="#" hidden>Open in Folio</a>',
         '<p class="hint" id="open-hint" hidden>This opens Folio\'s Add a source sheet with this address filled in. '
         "It works on an Android phone with Folio 0.6.6 or later.</p>",
+        '<p class="hint">In Folio 0.6.6 the Market opens with a supporter code; everyone gets it in 0.7.0.</p>',
         '<p class="hint" id="not-https" hidden>Folio only adds sources served over https, '
         "so the Open in Folio button is left out here.</p>",
         "<h2>Address</h2>",
