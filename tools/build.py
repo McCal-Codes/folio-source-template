@@ -41,6 +41,21 @@ PACKAGE_FILES = {".json", ".png", ".webp", ".jpg", ".jpeg", ".js"}
 DEFAULT_MAX_AGE_DAYS = 14
 
 
+def signing_time() -> int:
+    """When the index was signed: SOURCE_DATE_EPOCH if it is set (seconds, or an ISO 8601 date), otherwise now.
+
+    A push passes its push time, so rebuilding the same push gives the same bytes. A scheduled or manual run passes
+    nothing and gets the current time, which is what keeps the index from going stale between pushes.
+    """
+    raw = os.environ.get("SOURCE_DATE_EPOCH", "").strip()
+    if raw.isdigit():
+        return int(raw)
+    if raw:
+        from datetime import datetime
+        return int(datetime.fromisoformat(raw.replace("Z", "+00:00")).timestamp())
+    return int(time.time())
+
+
 def fail(message: str) -> None:
     print(f"build: {message}", file=sys.stderr)
     raise SystemExit(1)
@@ -200,7 +215,7 @@ def main() -> int:
         entry = {
             "format": 1,
             "keyId": key_id,
-            "timestamp": int(os.environ.get("SOURCE_DATE_EPOCH", time.time())),
+            "timestamp": signing_time(),
             "maxAge": int(source.get("maxAgeDays", DEFAULT_MAX_AGE_DAYS)) * 24 * 60 * 60,
             "index": {
                 "path": "index.json",
