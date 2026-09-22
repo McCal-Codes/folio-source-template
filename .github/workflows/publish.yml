@@ -1,7 +1,8 @@
 name: Publish
 
 # Every push to main rebuilds the source, signs it and puts it on GitHub Pages. A pull request builds and checks it
-# without the key, so someone else's change can be reviewed without being able to sign anything.
+# without the key, so someone else's change can be reviewed without being able to sign anything. With no key set yet,
+# a push is built and checked the same way and nothing is published.
 
 on:
   push:
@@ -28,8 +29,30 @@ jobs:
       - name: Build without signing, and check what it built
         run: python3 tools/build.py --no-sign
 
-  publish:
+  # A copy of the template has no key until its owner adds one. Until then, build and check the source unsigned and
+  # skip publishing, rather than failing every push. Secrets can't be read in a job's `if`, so this job looks for it.
+  key:
     if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    outputs:
+      present: ${{ steps.look.outputs.present }}
+    steps:
+      - id: look
+        env:
+          FOLIO_SOURCE_KEY: ${{ secrets.FOLIO_SOURCE_KEY }}
+        run: |
+          if [ -n "$FOLIO_SOURCE_KEY" ]; then echo "present=true" >> "$GITHUB_OUTPUT"; else echo "present=false" >> "$GITHUB_OUTPUT"; fi
+      - if: steps.look.outputs.present != 'true'
+        uses: actions/checkout@v4
+      - name: No key yet, so build without signing and check what it built
+        if: steps.look.outputs.present != 'true'
+        run: |
+          python3 tools/build.py --no-sign
+          echo "::notice::Not published: add the FOLIO_SOURCE_KEY secret to publish this source (see README, step 3)."
+
+  publish:
+    needs: key
+    if: needs.key.outputs.present == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
