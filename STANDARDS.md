@@ -54,12 +54,18 @@ Rule IDs in brackets point to the matching rule in Folio's standards, if you wan
 
 AI-made packages are welcome, and they're labelled ([AI-6], [AI-7]):
 
-- **Start `description` with "AI-assisted (tool name)."** For example: `"AI-assisted (Claude). Deep blue glass and
-  square icons."` Say it again in your depiction.
-- **Keep the label** when you update, fork or republish a package someone else made with AI.
+- **Set `aiAssisted` in `manifest.json`**, naming up to five tools, with an optional note on what the AI did:
+
+  ```json
+  "aiAssisted": { "tools": ["Claude"], "note": "Drafted the colours; I picked the final ones." }
+  ```
+
+- **Also start `description` with "AI-assisted (tool name)."** For example: `"AI-assisted (Claude). Deep blue glass and
+  square icons."` Older Folio versions skip `aiAssisted`, and the Market doesn't show it yet, so the description is
+  what people see for now. Say it again in your depiction.
+- **Keep both** when you update, fork or republish a package someone else made with AI.
 - **A person is responsible.** Whoever publishes it has tried it on a device and stands behind it.
-- Folio's manifest will get its own field for this. Until then, the first words of `description` are the label, and a
-  source or the Community listing may remove an unlabelled AI-made package.
+- A source or the Community listing may remove an unlabelled AI-made package.
 
 This is different from Folio's app code, where outside AI agents may only test for and fix bugs. See
 [AI contributions](https://github.com/McCal-Codes/folio/blob/main/docs/standards/ai-contributions.md).
