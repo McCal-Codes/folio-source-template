@@ -85,7 +85,11 @@ the Folio repository when the format moves on.
 
 ## Keeping a package honest
 
+[STANDARDS.md](STANDARDS.md) has the full list: how a package should look, read and fit every screen, how to test it,
+and how to label one made with AI. The short version:
+
 - **Credit anything you were inspired by**, and don't include GPL code.
+- **Made with AI?** Start `description` with "AI-assisted (tool name)." and keep that label when you update it.
 - **Name every permission** your package uses; the privacy label people see is built from that list.
 - **Pictures are downloaded before anything is installed**, so keep them small — the validator warns past 1 MB.
 - **Revoking a package:** add its id to `revoked.json` and push. Phones that already have it will turn it off.
