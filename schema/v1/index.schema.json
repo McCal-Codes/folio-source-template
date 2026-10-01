@@ -181,6 +181,29 @@
                 "maxLength": 200
               }
             }
+          },
+          "signedBy": {
+            "type": "object",
+            "description": "The author's signature over folio-pkg:<id>:<version>:<sha256>, base64. Separate from the source's signature: it says who wrote the package, not who is handing it out.",
+            "additionalProperties": false,
+            "required": [
+              "key",
+              "signature"
+            ],
+            "properties": {
+              "key": {
+                "type": "string",
+                "description": "The author's public key, base64 SPKI (ECDSA P-256).",
+                "minLength": 40,
+                "maxLength": 512
+              },
+              "signature": {
+                "type": "string",
+                "description": "Base64 signature over the payload.",
+                "minLength": 40,
+                "maxLength": 512
+              }
+            }
           }
         },
         "dependentRequired": {
