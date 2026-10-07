@@ -53,6 +53,8 @@ SCHEMA_DIR = _schema_dir()
 PACKAGE_SUFFIXES = {".json", ".png", ".webp", ".jpg", ".jpeg", ".js"}
 SOURCE_SUFFIXES = PACKAGE_SUFFIXES | {".sig", ".pub", ".foliopkg"}
 PICTURE_SUFFIXES = {".png", ".webp", ".jpg", ".jpeg"}
+# Read but refused (format-v1): no Folio installs a package of one. The app's list is PackageKind.reserved.
+RESERVED_KINDS = ("settingsSchema", "script")
 
 MAX_ZIP_COMPRESSED = 20 * 1024 * 1024
 MAX_ZIP_UNCOMPRESSED = 50 * 1024 * 1024
@@ -155,7 +157,8 @@ class SchemaSet:
             out.append(f"{where}: {instance!r} is not one of {', '.join(map(str, schema['enum']))}")
 
         if isinstance(instance, str):
-            if "pattern" in schema and not re.search(schema["pattern"], instance):
+            # Python's `$` also matches before a trailing newline; the phone's `\z` doesn't, so neither does this.
+            if "pattern" in schema and not re.search(schema["pattern"].replace("$", r"\Z"), instance):
                 out.append(f"{where}: {instance!r} does not match {schema['pattern']}")
             if "minLength" in schema and len(instance) < schema["minLength"]:
                 out.append(f"{where}: shorter than {schema['minLength']} characters")
@@ -288,13 +291,34 @@ class Report:
 # the checks
 # ---------------------------------------------------------------------------------------------------------------
 
+PACKAGE_NAME_RE = re.compile(r"(?!/)(?!.*\.\.)[A-Za-z0-9._/-]+")
+
+
 def load_json(path: pathlib.Path, report: Report, where: str) -> dict | None:
     try:
-        return json.loads(path.read_text())
+        value = json.loads(path.read_text(encoding="utf-8"))
     except FileNotFoundError:
         report.error(f"{where}: missing")
+        return None
+    except UnicodeDecodeError:
+        report.error(f"{where}: not UTF-8 text")
+        return None
     except json.JSONDecodeError as problem:
         report.error(f"{where}: not valid JSON - {problem.msg} on line {problem.lineno}")
+        return None
+    if not isinstance(value, dict):
+        report.error(f"{where}: must be a JSON object")
+        return None
+    return value
+
+
+def inside(root: pathlib.Path, named: str, report: Report, where: str) -> pathlib.Path | None:
+    """[named] under [root], or None (reported) when it points anywhere else: a source is read, never the disk."""
+    if isinstance(named, str):
+        path = (root / named).resolve()
+        if path.is_relative_to(root.resolve()):
+            return path
+    report.error(f"{where}: {named!r} points outside the source")
     return None
 
 
@@ -321,6 +345,32 @@ def check_picture(root: pathlib.Path, named: str, where: str, report: Report) ->
         report.warn(f"{where}: {named} is {size // 1024} KB; it is downloaded just to show the package")
 
 
+def check_effect(effect, where: str, report: Report):
+    """A page effect's numbers, as PageEffectSpec.of reads them: out of range is clamped, so only a warning; anything
+    it can't read at all, starting with an effect that isn't an object, is an error."""
+    if not isinstance(effect, dict):
+        report.error(f"{where}: must be a JSON object with maxRotation, pivot, shrink and cameraWidths")
+        return
+    for key, low, high in (("maxRotation", -90, 90), ("shrink", 0, 0.3), ("cameraWidths", 1.5, 4)):
+        value = effect.get(key)
+        if not isinstance(value, (int, float)) or isinstance(value, bool):
+            report.error(f"{where}: {key} must be a number")
+        elif not low <= value <= high:
+            report.warn(f"{where}: {key} {value} is outside {low} to {high}; Folio will clamp it")
+    if effect.get("pivot") not in ("seam", "center"):
+        report.error(f"{where}: pivot must be seam or center")
+
+
+def check_reserved_kinds(kinds, where: str, report: Report):
+    """Folio refuses a package of a reserved kind and won't install it, so a source mustn't offer one, as a folder
+    or packed. A kind that isn't a list is the schema's to report."""
+    if not isinstance(kinds, list):
+        return
+    for kind in RESERVED_KINDS:
+        if kind in kinds:
+            report.error(f"{where}: kind {kind} is reserved; Folio refuses a package of it and won't install it")
+
+
 def check_package(folder: pathlib.Path, source_root: pathlib.Path, schemas: SchemaSet, report: Report) -> dict | None:
     """One package folder: its manifest, its page, and the files its manifest promises."""
     name = folder.name
@@ -331,12 +381,22 @@ def check_package(folder: pathlib.Path, source_root: pathlib.Path, schemas: Sche
         report.error(problem)
 
     kinds = manifest.get("kind", [])
-    if "script" in kinds and not (folder / "script.js").is_file():
-        report.error(f"{name}: kind includes script, but there is no script.js")
+    check_reserved_kinds(kinds, name, report)
     if "script" not in kinds and (folder / "script.js").is_file():
         report.error(f"{name}: there is a script.js, but kind does not include script")
     if "tweakBundle" in kinds and not (folder / "tweaks.json").is_file():
         report.error(f"{name}: kind includes tweakBundle, but there is no tweaks.json")
+    if "pageEffect" in kinds:
+        effect_file = folder / "effect.json"
+        if not effect_file.is_file():
+            report.error(f"{name}: kind includes pageEffect, but there is no effect.json")
+        else:
+            try:
+                effect = json.loads(effect_file.read_text(encoding="utf-8"))
+            except ValueError as problem:
+                report.error(f"{name}/effect.json: not JSON ({problem})")
+            else:
+                check_effect(effect, f"{name}/effect.json", report)
 
     version = manifest.get("minFolio")
     if isinstance(version, str) and not VERSION_RE.match(version):
@@ -347,8 +407,8 @@ def check_package(folder: pathlib.Path, source_root: pathlib.Path, schemas: Sche
 
     named_depiction = manifest.get("depiction")
     if named_depiction:
-        depiction_path = folder / named_depiction
-        depiction = load_json(depiction_path, report, f"{name}/{named_depiction}")
+        depiction_path = inside(folder, named_depiction, report, f"{name}/manifest.json: depiction")
+        depiction = load_json(depiction_path, report, f"{name}/{named_depiction}") if depiction_path else None
         if depiction is not None:
             for problem in schemas.validate(depiction, schemas.get("depiction.schema.json"), f"{name}/{named_depiction}"):
                 report.error(problem)
@@ -504,13 +564,15 @@ def check_entry(root: pathlib.Path, schemas: SchemaSet, report: Report) -> None:
         report.warn("no key.pub: whoever adds this source has nothing to pin")
 
     pointer = entry.get("index", {})
-    index_path = root / pointer.get("path", "index.json")
-    if index_path.is_file():
+    if not isinstance(pointer, dict):
+        return
+    index_path = inside(root, pointer.get("path", "index.json"), report, "entry.json: index.path")
+    if index_path and index_path.is_file():
         raw = index_path.read_bytes()
         if pointer.get("size") is not None and pointer["size"] != len(raw):
             report.error(f"entry.json: says the index is {pointer['size']} bytes; it is {len(raw)}")
         digest = hashlib.sha256(raw).hexdigest()
-        if pointer.get("sha256") and pointer["sha256"].lower() != digest:
+        if isinstance(pointer.get("sha256"), str) and pointer["sha256"].lower() != digest:
             report.error("entry.json: the index's sha256 does not match the index that is here")
     stamp = entry.get("timestamp")
     if isinstance(stamp, int) and stamp > time.time() + 3600:
@@ -544,11 +606,16 @@ def check_foliopkg(path: pathlib.Path, schemas: SchemaSet, report: Report, stand
     if len(names) > MAX_ZIP_ENTRIES:
         report.error(f"{path.name}: {len(names)} entries, over the 500 allowed")
     total = 0
+    seen = set()
     for info in archive.infolist():
         total += info.file_size
         name = info.filename
-        if name.startswith("/") or ".." in pathlib.PurePosixPath(name).parts or "\\" in name:
+        # The phone's own rule (PackageArchive.NAME), so a package this passes is one the phone opens.
+        if not PACKAGE_NAME_RE.fullmatch(name.rstrip("/")) or len(name) > 200:
             report.error(f"{name}: a package may not contain a path like this")
+        if name in seen:
+            report.error(f"{name}: appears twice in the archive")
+        seen.add(name)
         if (info.external_attr >> 16) & 0o170000 == 0o120000:
             report.error(f"{name}: symlinks are not allowed in a package")
         if not info.is_dir() and pathlib.PurePosixPath(name).suffix.lower() not in PACKAGE_SUFFIXES:
@@ -560,15 +627,36 @@ def check_foliopkg(path: pathlib.Path, schemas: SchemaSet, report: Report, stand
         return None
 
     try:
-        manifest = json.loads(archive.read("manifest.json"))
+        manifest = json.loads(archive.read("manifest.json").decode("utf-8"))
+    except UnicodeDecodeError:
+        report.error(f"{path.name}: manifest.json is not UTF-8 text")
+        return None
     except json.JSONDecodeError as problem:
         report.error(f"{path.name}: manifest.json is not valid JSON - {problem.msg}")
         return None
-    label = "manifest.json" if standalone else f"packages/{path.name}: manifest.json"
+    if not isinstance(manifest, dict):
+        report.error(f"{path.name}: manifest.json must be a JSON object")
+        return None
+    prefix = "" if standalone else f"packages/{path.name}: "
+    label = f"{prefix}manifest.json"
     for problem in schemas.validate(manifest, schemas.get("manifest.schema.json"), label):
         report.error(problem)
+    # The schema lists the reserved kinds, so it passes them; a packed one would otherwise reach a source unseen.
+    check_reserved_kinds(manifest.get("kind"), label, report)
     if "depiction" in manifest and manifest["depiction"] not in names:
         report.error(f"{label}: names {manifest['depiction']}, which is not in the archive")
+    # A published source carries only archives, so what a phone installs gets the same effect checks as a folder.
+    kinds = manifest.get("kind")
+    if isinstance(kinds, list) and "pageEffect" in kinds:
+        if "effect.json" not in names:
+            report.error(f"{label}: kind includes pageEffect, but there is no effect.json in the archive")
+        else:
+            try:
+                effect = json.loads(archive.read("effect.json").decode("utf-8"))
+            except ValueError as problem:
+                report.error(f"{prefix}effect.json: not JSON ({problem})")
+            else:
+                check_effect(effect, f"{prefix}effect.json", report)
     if standalone:
         report.note("pictures are not checked here: they live on the source, not in the package")
     return manifest
